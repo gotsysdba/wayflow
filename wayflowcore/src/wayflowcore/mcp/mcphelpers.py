@@ -9,7 +9,6 @@ import json
 import logging
 from collections.abc import AsyncGenerator as cAsyncGenerator
 from contextlib import contextmanager
-from contextvars import ContextVar
 from functools import wraps
 from typing import (
     Any,
@@ -57,10 +56,11 @@ from wayflowcore.tracing.span import ToolExecutionSpan, get_current_span
 
 logger = logging.getLogger(__name__)
 
-# Whether the developer enables the use of MCP without authentication
-_GLOBAL_ENABLED_MCP_WITHOUT_AUTH: ContextVar[bool] = ContextVar(
-    "_GLOBAL_ENABLED_MCP_WITHOUT_AUTH", default=False
-)
+# Whether the developer enables the use of MCP without authentication.
+# This is a process-wide flag (not a ContextVar) because it represents an
+# application-level opt-in decision that must survive across async contexts
+# and thread boundaries (e.g. anyio worker threads, BlockingPortal tasks).
+_GLOBAL_ENABLED_MCP_WITHOUT_AUTH: bool = False
 
 
 def enable_mcp_without_auth() -> None:
@@ -79,15 +79,17 @@ def enable_mcp_without_auth() -> None:
     >>> mcp_toolbox = MCPToolBox(client_transport=transport)
 
     """
-    _GLOBAL_ENABLED_MCP_WITHOUT_AUTH.set(True)
+    global _GLOBAL_ENABLED_MCP_WITHOUT_AUTH
+    _GLOBAL_ENABLED_MCP_WITHOUT_AUTH = True
 
 
-def _reset_mcp_contextvar() -> None:
-    _GLOBAL_ENABLED_MCP_WITHOUT_AUTH.set(False)
+def _reset_mcp_without_auth() -> None:
+    global _GLOBAL_ENABLED_MCP_WITHOUT_AUTH
+    _GLOBAL_ENABLED_MCP_WITHOUT_AUTH = False
 
 
 def _is_mcp_without_auth_enabled() -> bool:
-    return _GLOBAL_ENABLED_MCP_WITHOUT_AUTH.get()
+    return _GLOBAL_ENABLED_MCP_WITHOUT_AUTH
 
 
 def _validate_auth(client_transport: ClientTransport) -> None:

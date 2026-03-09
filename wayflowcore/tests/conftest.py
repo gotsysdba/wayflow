@@ -26,7 +26,7 @@ from wayflowcore.datastore.oracle import TlsOracleDatabaseConnectionConfig
 from wayflowcore.embeddingmodels import VllmEmbeddingModel
 from wayflowcore.flowhelpers import create_single_step_flow
 from wayflowcore.mcp import enable_mcp_without_auth
-from wayflowcore.mcp.mcphelpers import _reset_mcp_contextvar
+from wayflowcore.mcp.mcphelpers import _reset_mcp_without_auth
 from wayflowcore.models import LlmModel, StreamChunkType
 from wayflowcore.models.llmmodelfactory import LlmModelFactory
 from wayflowcore.models.ociclientconfig import (
@@ -859,7 +859,7 @@ def with_mcp_enabled():
         enable_mcp_without_auth()
         yield
     finally:
-        _reset_mcp_contextvar()
+        _reset_mcp_without_auth()
 
 
 @pytest.fixture(scope="session")
